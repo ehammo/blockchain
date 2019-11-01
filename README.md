@@ -1,6 +1,6 @@
 # Learn Blockchains by Building One
 
-[![Build Status](https://travis-ci.org/dvf/blockchain.svg?branch=master)](https://travis-ci.org/dvf/blockchain)
+[![Build Status](https://travis-ci.org/ehammo/blockchain.svg?branch=master)](https://travis-ci.org/dvf/blockchain)
 
 This is the source code for my post on [Building a Blockchain](https://medium.com/p/117428612f46). 
 

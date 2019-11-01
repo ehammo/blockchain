@@ -23,7 +23,7 @@ class Blockchain:
 
         :param address: Address of node. Eg. 'http://192.168.0.5:5000'
         """
-
+        # TODO: if node is yourself, do not add
         parsed_url = urlparse(address)
         if parsed_url.netloc:
             self.nodes.add(parsed_url.netloc)
@@ -32,7 +32,6 @@ class Blockchain:
             self.nodes.add(parsed_url.path)
         else:
             raise ValueError('Invalid URL')
-
 
     def valid_chain(self, chain):
         """
@@ -63,6 +62,8 @@ class Blockchain:
             current_index += 1
 
         return True
+
+    # todo: should we search for neighbours?
 
     def resolve_conflicts(self):
         """
@@ -202,7 +203,6 @@ node_identifier = str(uuid4()).replace('-', '')
 # Instantiate the Blockchain
 blockchain = Blockchain()
 
-
 @app.route('/mine', methods=['GET'])
 def mine():
     # We run the proof of work algorithm to get the next proof...
@@ -229,7 +229,6 @@ def mine():
         'previous_hash': block['previous_hash'],
     }
     return jsonify(response), 200
-
 
 @app.route('/transactions/new', methods=['POST'])
 def new_transaction():
