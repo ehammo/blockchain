@@ -71,7 +71,7 @@ class Blockchain:
 
         :return: True if our chain was replaced, False if not
         """
-
+        print("resolving conflicts")
         neighbours = self.nodes
         new_chain = None
 
@@ -80,13 +80,15 @@ class Blockchain:
 
         # Grab and verify the chains from all the nodes in our network
         for node in neighbours:
+            print("Checking chain of neighbours {node}")
             response = requests.get(f'http://{node}/chain')
-
+            print("Got chain")
             if response.status_code == 200:
                 length = response.json()['length']
                 chain = response.json()['chain']
 
                 # Check if the length is longer and the chain is valid
+                print("is chain valid?")
                 if length > max_length and self.valid_chain(chain):
                     max_length = length
                     new_chain = chain
@@ -231,8 +233,11 @@ def mine():
 
 @app.route('/transactions/new', methods=['POST'])
 def new_transaction():
+    print(request)
     values = request.get_json()
-
+    if values is None:
+      response = {'message': f'Body should be a json'}
+      return jsonify(response), 501
     # Check that the required fields are in the POST'ed data
     required = ['sender', 'recipient', 'amount']
     if not all(k in values for k in required):
@@ -271,6 +276,12 @@ def register_nodes():
     }
     return jsonify(response), 201
 
+@app.route('/nodes', methods=['GET'])
+def get_nodes():
+  response = {
+        'total_nodes': list(blockchain.nodes),
+  }
+  return jsonify(response), 200
 
 @app.route('/nodes/resolve', methods=['GET'])
 def consensus():

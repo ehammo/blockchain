@@ -103,4 +103,7 @@ ENV/
 # PyCharm
 .idea/
 
+# VsCode
+.vscode
+
 node_modules/
