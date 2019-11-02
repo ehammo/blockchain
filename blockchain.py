@@ -3,20 +3,24 @@ import json
 from time import time
 from urllib.parse import urlparse
 from uuid import uuid4
+import traceback
 
 import requests
 from flask import Flask, jsonify, request
 
 
 class Blockchain:
-    def __init__(self):
+    def __init__(self, node_identifier):
+        # How should the blockchain be saved outside the memory? A big json? Should we import it here?
+        # We should also save our neighboors so we can update our blockchain. In fact, that may be even more useful
         self.current_transactions = []
         self.chain = []
         self.nodes = set()
-
+        self.node_identifier = node_identifier
         # Create the genesis block
         self.new_block(previous_hash='1', proof=100)
 
+    # todo: should we search for neighbours? should neighboors ping us?
     def register_node(self, address):
         """
         Add a new node to the list of nodes
@@ -26,12 +30,32 @@ class Blockchain:
         # TODO: if node is yourself, do not add
         parsed_url = urlparse(address)
         if parsed_url.netloc:
-            self.nodes.add(parsed_url.netloc)
-        elif parsed_url.path:
-            # Accepts an URL without scheme like '192.168.0.5:5000'.
-            self.nodes.add(parsed_url.path)
+          url = parsed_url.netloc
+          print(f'netloc {url}')
+       # TODO: Accepts an URL without scheme like '192.168.0.5:5000'.
+       # This elif was accepting stuff like http//0.0.0.0:5555
+       # elif parsed_url.path:  
+        #  url = parsed_url.path
+        #  print(f'path {url}')
         else:
-            raise ValueError('Invalid URL')
+          print("invalid")
+          raise ValueError(f'Invalid URL- {parsed_url.path}')
+        
+        try:
+          print(f'trying to get http://{url}/id')
+          response = requests.get(f'http://{url}/id')
+          new_node_id = response.json()['id']
+          if (self.node_identifier == new_node_id):
+            raise ValueError(f'A node cant be his own neighboor - {url}')
+          else:
+            self.nodes.add(url)
+        except ValueError as e:
+          raise e
+        except requests.exceptions.RequestException as e:
+          raise ValueError(f'Dead node - {url}')
+        except Exception as e:
+          traceback.print_exc()
+          raise ValueError(f'Unexpected error while adding {url}')
 
     def valid_chain(self, chain):
         """
@@ -62,8 +86,7 @@ class Blockchain:
 
         return True
 
-    # todo: should we search for neighbours?
-
+    # todo: what do we do with a pending transaction of our old blockchain? We shouldnt discard it.
     def resolve_conflicts(self):
         """
         This is our consensus algorithm, it resolves conflicts
@@ -205,7 +228,17 @@ app = Flask(__name__)
 node_identifier = str(uuid4()).replace('-', '')
 
 # Instantiate the Blockchain
-blockchain = Blockchain()
+blockchain = Blockchain(node_identifier)
+
+@app.route('/id', methods=['GET'])
+def get_node_identifier():
+  response = {
+    'id': node_identifier,
+  }
+  return jsonify(response), 200
+
+# TODO: mining should come after trying to create a transaction not before
+# maybe we should ask the neighboors who wants to mine a pending transaction
 
 @app.route('/mine', methods=['GET'])
 def mine():
@@ -270,14 +303,27 @@ def register_nodes():
     if nodes is None:
         return "Error: Please supply a valid list of nodes", 400
 
+    counter = 0
+    error_messages = set()
     for node in nodes:
+      try:
         blockchain.register_node(node)
-
-    response = {
-        'message': 'New nodes have been added',
-        'total_nodes': list(blockchain.nodes),
-    }
-    return jsonify(response), 201
+        counter = counter + 1
+      except Exception as e:
+        error_messages.add(e)
+        pass
+    if(counter > 0):
+      response = {
+          'message': 'New nodes have been added',
+          'total_nodes': list(blockchain.nodes),
+      }
+      return jsonify(response), 201
+    else:
+      response = {
+          'message': f'No nodes have been added {error_messages}',
+          'total_nodes': list(blockchain.nodes),
+      }
+      return jsonify(response), 200
 
 @app.route('/nodes', methods=['GET'])
 def get_nodes():
