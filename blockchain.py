@@ -53,7 +53,6 @@ class Blockchain:
             last_block_hash = self.hash(last_block)
             if block['previous_hash'] != last_block_hash:
                 return False
-
             # Check that the Proof of Work is correct
             if not self.valid_proof(last_block['proof'], block['proof'], last_block_hash):
                 return False
@@ -73,26 +72,31 @@ class Blockchain:
         :return: True if our chain was replaced, False if not
         """
         print("resolving conflicts")
-        neighbours = self.nodes
+        neighbours = self.nodes.copy()
         new_chain = None
 
         # We're only looking for chains longer than ours
         max_length = len(self.chain)
-
         # Grab and verify the chains from all the nodes in our network
         for node in neighbours:
-            print("Checking chain of neighbours {node}")
-            response = requests.get(f'http://{node}/chain')
-            print("Got chain")
-            if response.status_code == 200:
-                length = response.json()['length']
-                chain = response.json()['chain']
+            print(f'Checking chain of neighbours {node}')
+            try:
+              response = requests.get(f'http://{node}/chain')
+              print("Got chain")
+              if response.status_code == 200:
+                  length = response.json()['length']
+                  chain = response.json()['chain']
 
-                # Check if the length is longer and the chain is valid
-                print("is chain valid?")
-                if length > max_length and self.valid_chain(chain):
-                    max_length = length
-                    new_chain = chain
+                  # Check if the length is longer and the chain is valid
+                  print("is chain valid?")
+                  if length > max_length and self.valid_chain(chain) and length == len(chain):
+                      max_length = length
+                      new_chain = chain
+            except:
+              print(f'Unresponsive node {node}')
+              print("removing from sub subscribers list")
+              self.nodes.discard(node) 
+              pass
 
         # Replace our chain if we discovered a new, valid chain longer than ours
         if new_chain:
