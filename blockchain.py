@@ -20,6 +20,24 @@ class Blockchain:
         # Create the genesis block
         self.new_block(previous_hash='1', proof=100)
 
+
+    def is_address_valid(self, address):
+        parsed_url = urlparse(address)
+        if parsed_url.netloc:
+          url = parsed_url.netloc
+          print(f'netloc {url}')
+       # TODO: Accepts an URL without scheme like '192.168.0.5:5000'.
+       # This elif was accepting stuff like http//0.0.0.0:5555
+       # elif parsed_url.path:
+        #  url = parsed_url.path
+        #  print(f'path {url}')
+        else:
+          print("invalid")
+          raise ValueError(f'Invalid URL- {parsed_url.path}')
+        return url
+
+
+
     # todo: should we search for neighbours? should neighboors ping us?
     def register_node(self, address):
         """
@@ -27,21 +45,8 @@ class Blockchain:
 
         :param address: Address of node. Eg. 'http://192.168.0.5:5000'
         """
-        # TODO: if node is yourself, do not add
-        parsed_url = urlparse(address)
-        if parsed_url.netloc:
-          url = parsed_url.netloc
-          print(f'netloc {url}')
-       # TODO: Accepts an URL without scheme like '192.168.0.5:5000'.
-       # This elif was accepting stuff like http//0.0.0.0:5555
-       # elif parsed_url.path:  
-        #  url = parsed_url.path
-        #  print(f'path {url}')
-        else:
-          print("invalid")
-          raise ValueError(f'Invalid URL- {parsed_url.path}')
-        
         try:
+          url = is_address_valid(address)
           print(f'trying to get http://{url}/id')
           response = requests.get(f'http://{url}/id')
           new_node_id = response.json()['id']

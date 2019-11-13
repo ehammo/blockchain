@@ -8,7 +8,7 @@ from blockchain import Blockchain
 class BlockchainTestCase(TestCase):
 
     def setUp(self):
-        self.blockchain = Blockchain()
+        self.blockchain = Blockchain('http://192.168.1.1:5000')
 
     def create_block(self, proof=123, previous_hash='abc'):
         self.blockchain.new_block(proof, previous_hash)
@@ -24,26 +24,36 @@ class BlockchainTestCase(TestCase):
 class TestRegisterNodes(BlockchainTestCase):
 
     def test_valid_nodes(self):
-        blockchain = Blockchain()
-
-        blockchain.register_node('http://192.168.0.1:5000')
-
-        self.assertIn('192.168.0.1:5000', blockchain.nodes)
+        try:
+            self.blockchain.is_address_valid('http://192.168.0.1:5000')
+            assert True
+        except:
+            assert False            
 
     def test_malformed_nodes(self):
-        blockchain = Blockchain()
+        try:
+            self.blockchain.is_address_valid('http://192.168.0.2:5000')
+            assert False
+        except:
+            assert True
 
-        blockchain.register_node('http//192.168.0.1:5000')
+    #In today's logic it would be necessary to mock the activity of these nodes, since only active nodes may enter the blockchain
+    #def test_idempotency(self):
+    #    try:
+    #	    self.blockchain.is_address_valid('http://192.168.0.3:5000')
+    #	    self.blockchain.is_address_valid('http://192.168.0.3:5000')
+    #        assert True
+    #    except:
+    #        assert False
 
-        self.assertNotIn('192.168.0.1:5000', blockchain.nodes)
 
-    def test_idempotency(self):
-        blockchain = Blockchain()
+    def test_do_not_add_yourself(self):
+        try:
+            self.blockchain.is_address_valid('http://192.168.1.1:5000')
+            assert False
+        except:
+            assert True
 
-        blockchain.register_node('http://192.168.0.1:5000')
-        blockchain.register_node('http://192.168.0.1:5000')
-
-        assert len(blockchain.nodes) == 1
 
 
 class TestBlocksAndTransactions(BlockchainTestCase):
